@@ -1,5 +1,6 @@
 use crate::BenchmarkSummary;
-use rome_js_formatter::{format, FormatOptions, Formatted};
+use rome_formatter::{FormatOptions, FormatUnstableFeatures, Formatted};
+use rome_js_formatter::format;
 use rome_js_syntax::JsSyntaxNode;
 use std::fmt::{Display, Formatter};
 use std::time::Duration;
@@ -21,7 +22,12 @@ pub fn benchmark_format_lib(id: &str, root: &JsSyntaxNode) -> BenchmarkSummary {
 }
 
 pub fn run_format(root: &JsSyntaxNode) -> Formatted {
-    format(FormatOptions::default(), root).unwrap()
+    format(
+        FormatOptions::default(),
+        FormatUnstableFeatures::default(),
+        root,
+    )
+    .unwrap()
 }
 
 impl FormatterMeasurement {

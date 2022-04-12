@@ -1,5 +1,5 @@
 use rome_core::App;
-use rome_formatter::LineWidth;
+use rome_formatter::{FormatUnstableFeatures, LineWidth};
 use rome_fs::RomePath;
 use rome_js_formatter::{format, FormatOptions, Formatted, IndentStyle, QuoteStyle};
 use rome_js_parser::{parse, ModuleKind, SourceType};
@@ -52,8 +52,11 @@ pub struct SerializableFormatOptions {
     /// What's the max width of a line. Defaults to 80.
     pub line_width: Option<u16>,
 
-    // The style for quotes. Defaults to double.
+    /// The style for quotes. Defaults to double.
     pub quote_style: Option<SerializableQuoteStyle>,
+
+    /// Enables the sorting of import statements
+    pub unstable_sort_imports: Option<bool>,
 }
 
 impl From<SerializableFormatOptions> for FormatOptions {
@@ -73,6 +76,14 @@ impl From<SerializableFormatOptions> for FormatOptions {
     }
 }
 
+impl From<SerializableFormatOptions> for FormatUnstableFeatures {
+    fn from(test: SerializableFormatOptions) -> Self {
+        Self {
+            unstable_sort_imports: test.unstable_sort_imports.unwrap_or_default(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct TestOptions {
     cases: Vec<SerializableFormatOptions>,
@@ -81,11 +92,16 @@ struct TestOptions {
 #[derive(Debug, Default)]
 struct SnapshotContent {
     input: String,
-    output: Vec<(String, FormatOptions)>,
+    output: Vec<(String, FormatOptions, FormatUnstableFeatures)>,
 }
 
 impl SnapshotContent {
-    pub fn add_output(&mut self, formatted: Formatted, options: FormatOptions) {
+    pub fn add_output(
+        &mut self,
+        formatted: Formatted,
+        options: FormatOptions,
+        unstable_features: FormatUnstableFeatures,
+    ) {
         let mut output: String = formatted.as_code().into();
         if !formatted.verbatim().is_empty() {
             output.push_str("\n\n");
@@ -96,7 +112,7 @@ impl SnapshotContent {
                 output.push_str(string.as_str());
             }
         }
-        self.output.push((output, options));
+        self.output.push((output, options, unstable_features));
     }
 
     pub fn set_input(&mut self, content: impl Into<String>) {
@@ -112,11 +128,12 @@ impl SnapshotContent {
 
         output.push_str("# Outputs\n");
         let iter = self.output.iter();
-        for (index, (content, options)) in iter.enumerate() {
+        for (index, (content, options, unstable_features)) in iter.enumerate() {
             let formal_index = index + 1;
             output.push_str(format!("## Output {formal_index}\n").as_str());
             output.push_str("-----\n");
             output.push_str(format!("{}", options).as_str());
+            output.push_str(format!("{}", unstable_features).as_str());
             output.push_str("-----\n");
             output.push_str(content.as_str());
         }
@@ -170,7 +187,11 @@ pub fn run(spec_input_file: &str, _expected_file: &str, test_directory: &str, fi
         let has_errors = parsed.has_errors();
         let root = parsed.syntax();
 
-        let formatted_result = format(FormatOptions::default(), &root);
+        let formatted_result = format(
+            FormatOptions::default(),
+            FormatUnstableFeatures::default(),
+            &root,
+        );
 
         let file_name = spec_input_file.file_name().unwrap().to_str().unwrap();
         // we ignore the error for now
@@ -183,10 +204,15 @@ pub fn run(spec_input_file: &str, _expected_file: &str, test_directory: &str, fi
                 source_type: source_type.clone(),
                 file_name,
                 format_options: FormatOptions::default(),
+                format_unstable_features: FormatUnstableFeatures::default(),
             });
         }
 
-        snapshot_content.add_output(result, FormatOptions::default());
+        snapshot_content.add_output(
+            result,
+            FormatOptions::default(),
+            FormatUnstableFeatures::default(),
+        );
 
         let test_directory = PathBuf::from(test_directory);
         let options_path = test_directory.join("options.json");
@@ -199,7 +225,9 @@ pub fn run(spec_input_file: &str, _expected_file: &str, test_directory: &str, fi
 
                 for test_case in options.cases {
                     let format_options: FormatOptions = test_case.into();
-                    let formatted_result = format(format_options, &root).unwrap();
+                    let format_unstable_features: FormatUnstableFeatures = test_case.into();
+                    let formatted_result =
+                        format(format_options, format_unstable_features, &root).unwrap();
 
                     if !has_errors {
                         check_reformat::check_reformat(check_reformat::CheckReformatParams {
@@ -208,10 +236,15 @@ pub fn run(spec_input_file: &str, _expected_file: &str, test_directory: &str, fi
                             source_type: source_type.clone(),
                             file_name,
                             format_options,
+                            format_unstable_features,
                         });
                     }
 
-                    snapshot_content.add_output(formatted_result, format_options);
+                    snapshot_content.add_output(
+                        formatted_result,
+                        format_options,
+                        format_unstable_features,
+                    );
                 }
             }
         }

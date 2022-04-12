@@ -14,6 +14,7 @@ use std::fmt::{self, Display};
 pub use formatter::Formatter;
 pub use rome_formatter::intersperse::{Intersperse, IntersperseFn};
 pub use rome_formatter::printer::{Printer, PrinterOptions};
+use rome_formatter::FormatUnstableFeatures;
 pub use rome_formatter::{
     block_indent, comment, concat_elements, empty_element, empty_line, fill_elements,
     format_element, format_elements, group_elements, hard_group_elements, hard_line_break,
@@ -79,9 +80,13 @@ impl From<&SyntaxError> for FormatError {
 /// Formats a JavaScript (and its super languages) file based on its features.
 ///
 /// It returns a [Formatted] result, which the user can use to override a file.
-pub fn format(options: FormatOptions, syntax: &JsSyntaxNode) -> FormatResult<Formatted> {
+pub fn format(
+    options: FormatOptions,
+    unstable_features: FormatUnstableFeatures,
+    syntax: &JsSyntaxNode,
+) -> FormatResult<Formatted> {
     tracing::trace_span!("format").in_scope(move || {
-        let element = Formatter::new(options).format_root(syntax)?;
+        let element = Formatter::new(options, unstable_features).format_root(syntax)?;
         Ok(Printer::new(options).print(&element))
     })
 }
@@ -91,9 +96,10 @@ pub fn format(options: FormatOptions, syntax: &JsSyntaxNode) -> FormatResult<For
 /// It returns a [FormatElement] result. Mostly for debugging purposes.
 pub fn to_format_element(
     options: FormatOptions,
+    unstable_features: FormatUnstableFeatures,
     syntax: &JsSyntaxNode,
 ) -> FormatResult<FormatElement> {
-    Formatter::new(options).format_root(syntax)
+    Formatter::new(options, unstable_features).format_root(syntax)
 }
 
 /// Formats a range within a file, supported by Rome
@@ -109,6 +115,7 @@ pub fn to_format_element(
 /// range of the input that was effectively overwritten by the formatter
 pub fn format_range(
     options: FormatOptions,
+    unstable_features: FormatUnstableFeatures,
     root: &JsSyntaxNode,
     range: TextRange,
 ) -> FormatResult<Formatted> {
@@ -165,7 +172,7 @@ pub fn format_range(
 
     // Perform the actual formatting of the root node with
     // an appropriate indentation level
-    let formatted = format_node(options, common_root)?;
+    let formatted = format_node(options, unstable_features, common_root)?;
 
     // This finds the closest marker to the beginning of the source
     // starting before or at said starting point, and the closest
@@ -242,7 +249,11 @@ pub fn format_range(
 /// even if it's a mismatch from the rest of the block the selection is in
 ///
 /// It returns a [Formatted] result
-pub fn format_node(options: FormatOptions, root: &JsSyntaxNode) -> FormatResult<Formatted> {
+pub fn format_node(
+    options: FormatOptions,
+    unstable_features: FormatUnstableFeatures,
+    root: &JsSyntaxNode,
+) -> FormatResult<Formatted> {
     // Determine the initial indentation level for the printer by inspecting the trivias
     // of each token from the first token of the common root towards the start of the file
     let mut tokens = std::iter::successors(root.first_token(), |token| token.prev_token());
@@ -291,7 +302,7 @@ pub fn format_node(options: FormatOptions, root: &JsSyntaxNode) -> FormatResult<
         None => 0,
     };
 
-    let element = Formatter::new(options).format_root(root)?;
+    let element = Formatter::new(options, unstable_features).format_root(root)?;
     let formatted = Printer::new(options).print_with_indent(&element, initial_indent);
     let sourcemap = Vec::from(formatted.sourcemap());
     let verbatim = Vec::from(formatted.verbatim());
@@ -305,9 +316,9 @@ pub fn format_node(options: FormatOptions, root: &JsSyntaxNode) -> FormatResult<
 
 #[cfg(test)]
 mod tests {
-
     use super::{format_range, FormatOptions};
     use crate::IndentStyle;
+    use rome_formatter::FormatUnstableFeatures;
     use rome_js_parser::parse_script;
     use rome_rowan::{TextRange, TextSize};
 
@@ -347,6 +358,7 @@ while(
                 indent_style: IndentStyle::Space(4),
                 ..FormatOptions::default()
             },
+            FormatUnstableFeatures::default(),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
@@ -379,6 +391,7 @@ function() {
                 indent_style: IndentStyle::Space(4),
                 ..FormatOptions::default()
             },
+            FormatUnstableFeatures::default(),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
@@ -402,27 +415,55 @@ mod test {
     use crate::check_reformat::{check_reformat, CheckReformatParams};
     use crate::format;
     use crate::FormatOptions;
+    use rome_formatter::FormatUnstableFeatures;
     use rome_js_parser::{parse, SourceType};
 
     #[test]
+    #[ignore]
     // use this test check if your snippet prints as you wish, without using a snapshot
     fn quick_test() {
         let src = r#"
-a + b * c > 65 + 5;
+import {sort} from "lodash";
+import "bootstrap";
+import "polyfill";
+
+window.kickOffPolyfill();
+
+import {createStore} from "redux";
+import * as fs from "node:fs";
+import "angular";
 "#;
         let syntax = SourceType::tsx();
         let tree = parse(src, 0, syntax.clone());
-        let result = format(FormatOptions::default(), &tree.syntax()).unwrap();
+        let result = format(
+            FormatOptions::default(),
+            FormatUnstableFeatures {
+                unstable_sort_imports: true,
+            },
+            &tree.syntax(),
+        )
+        .unwrap();
         check_reformat(CheckReformatParams {
             root: &tree.syntax(),
             text: result.as_code(),
             source_type: syntax,
             file_name: "quick_test",
             format_options: FormatOptions::default(),
+            format_unstable_features: FormatUnstableFeatures {
+                unstable_sort_imports: true,
+            },
         });
         assert_eq!(
             result.as_code(),
-            r#"(a + (b * c)) > (65 + 5);
+            r#"import "bootstrap";
+import "polyfill";
+import { sort } from "lodash";
+
+window.kickOffPolyfill();
+
+import "angular";
+import { createStore } from "redux";
+import * as fs from "node:fs";
 "#
         );
     }

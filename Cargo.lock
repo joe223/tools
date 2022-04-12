@@ -1329,6 +1329,7 @@ dependencies = [
  "rome_console",
  "rome_core",
  "rome_diagnostics",
+ "rome_formatter",
  "rome_fs",
  "rome_js_formatter",
  "rome_js_parser",
@@ -1458,6 +1459,7 @@ dependencies = [
  "parking_lot 0.12.0",
  "rome_analyze",
  "rome_diagnostics",
+ "rome_formatter",
  "rome_fs",
  "rome_js_formatter",
  "rome_js_parser",
@@ -1484,6 +1486,7 @@ name = "rome_playground"
 version = "0.0.0"
 dependencies = [
  "rome_diagnostics",
+ "rome_formatter",
  "rome_js_formatter",
  "rome_js_parser",
  "wasm-bindgen",
@@ -2270,6 +2273,7 @@ dependencies = [
  "pico-args",
  "regex",
  "rome_diagnostics",
+ "rome_formatter",
  "rome_js_formatter",
  "rome_js_parser",
  "rome_js_syntax",

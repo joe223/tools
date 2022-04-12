@@ -11,6 +11,7 @@ use std::{
 };
 
 use rome_diagnostics::{file::SimpleFiles, termcolor, Emitter};
+use rome_formatter::FormatUnstableFeatures;
 use rome_js_formatter::{FormatOptions, IndentStyle};
 use rome_js_parser::{parse, SourceType};
 
@@ -66,6 +67,7 @@ fn test_snapshot(input: &'static str, _: &str, _: &str, _: &str) {
 
             rome_js_formatter::format_range(
                 options,
+                FormatUnstableFeatures::default(),
                 &syntax,
                 TextRange::new(
                     TextSize::try_from(start).unwrap(),
@@ -73,7 +75,7 @@ fn test_snapshot(input: &'static str, _: &str, _: &str, _: &str) {
                 ),
             )
         }
-        _ => rome_js_formatter::format(options, &syntax),
+        _ => rome_js_formatter::format(options, FormatUnstableFeatures::default(), &syntax),
     };
 
     let formatted = result.expect("formatting failed");
@@ -98,6 +100,7 @@ fn test_snapshot(input: &'static str, _: &str, _: &str, _: &str) {
                     source_type,
                     file_name,
                     format_options: options,
+                    format_unstable_features: FormatUnstableFeatures::default(),
                 });
             }
 

@@ -1,5 +1,6 @@
 use crate::{format_element, to_format_element, FormatOptions};
 use rome_diagnostics::{file::SimpleFiles, termcolor, Emitter};
+use rome_formatter::FormatUnstableFeatures;
 use rome_js_parser::{parse, SourceType};
 use rome_js_syntax::JsSyntaxNode;
 
@@ -9,6 +10,7 @@ pub struct CheckReformatParams<'a> {
     pub source_type: SourceType,
     pub file_name: &'a str,
     pub format_options: FormatOptions,
+    pub format_unstable_features: FormatUnstableFeatures,
 }
 
 /// Perform a second pass of formatting on a file, printing a diff if the
@@ -20,6 +22,7 @@ pub fn check_reformat(params: CheckReformatParams) {
         source_type,
         file_name,
         format_options,
+        format_unstable_features,
     } = params;
 
     let re_parse = parse(text, 0, source_type);
@@ -44,11 +47,13 @@ pub fn check_reformat(params: CheckReformatParams) {
         )
     }
 
-    let output_format_element = to_format_element(format_options, &re_parse.syntax()).unwrap();
+    let output_format_element =
+        to_format_element(format_options, format_unstable_features, &re_parse.syntax()).unwrap();
     let output_formatted = format_element(&output_format_element, format_options);
 
     if text != output_formatted.as_code() {
-        let input_format_element = to_format_element(format_options, root).unwrap();
+        let input_format_element =
+            to_format_element(format_options, format_unstable_features, root).unwrap();
 
         // Print a diff of the Formatter IR emitted for the input and the output
         let diff = similar_asserts::Diff::from_debug(

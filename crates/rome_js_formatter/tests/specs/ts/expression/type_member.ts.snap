@@ -1,6 +1,8 @@
 ---
 source: crates/rome_js_formatter/tests/spec_test.rs
+assertion_line: 256
 expression: type_member.ts
+
 ---
 # Input
 type A =
@@ -57,6 +59,7 @@ type K = { set     something( something_with_long_name: string ) }
 Indent style: Tab
 Line width: 80
 Quote style: Double Quotes
+Unstable sort imports: false
 -----
 type A = { [a: string]: number };
 

@@ -6,7 +6,7 @@ use crate::{
     join_elements_hard_line, line_suffix, soft_block_indent, soft_line_break_or_space, space_token,
     FormatElement, FormatOptions, FormatResult, TextRange, ToFormatElement, Token, Verbatim,
 };
-use rome_formatter::{normalize_newlines, LINE_TERMINATORS};
+use rome_formatter::{normalize_newlines, FormatUnstableFeatures, LINE_TERMINATORS};
 use rome_js_syntax::{JsLanguage, JsSyntaxNode, JsSyntaxToken};
 use rome_rowan::{AstNode, AstNodeList, AstSeparatedList, Language, SyntaxTriviaPiece};
 #[cfg(debug_assertions)]
@@ -25,6 +25,8 @@ pub struct Formatter {
     // the Formatter is still completely immutable in release builds
     #[cfg(debug_assertions)]
     pub(super) printed_tokens: RefCell<HashSet<JsSyntaxToken>>,
+
+    unstable_features: FormatUnstableFeatures,
 }
 
 #[derive(Debug)]
@@ -51,11 +53,12 @@ impl Default for TrailingSeparator {
 
 impl Formatter {
     /// Creates a new context that uses the given formatter options
-    pub fn new(options: FormatOptions) -> Self {
+    pub fn new(options: FormatOptions, unstable_features: FormatUnstableFeatures) -> Self {
         Self {
             options,
             #[cfg(debug_assertions)]
             printed_tokens: RefCell::default(),
+            unstable_features,
         }
     }
 
@@ -63,6 +66,12 @@ impl Formatter {
     #[inline]
     pub fn options(&self) -> &FormatOptions {
         &self.options
+    }
+
+    /// Returns the [FormatUnstableOptions] specifying how to format the current CST
+    #[inline]
+    pub fn unstable_features(&self) -> &FormatUnstableFeatures {
+        &self.unstable_features
     }
 
     /// Formats a CST

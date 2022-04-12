@@ -3,7 +3,8 @@
 use rome_diagnostics::file::SimpleFiles;
 use rome_diagnostics::termcolor::{ColorSpec, WriteColor};
 use rome_diagnostics::Emitter;
-use rome_js_formatter::{format as format_code, to_format_element, FormatOptions, IndentStyle};
+use rome_formatter::{FormatOptions, FormatUnstableFeatures, IndentStyle};
+use rome_js_formatter::{format as format_code, to_format_element};
 use rome_js_parser::{parse, LanguageVariant, SourceType};
 use std::io;
 use wasm_bindgen::prelude::*;
@@ -115,14 +116,16 @@ pub fn run(
         quote_style: quote_style.parse().unwrap_or_default(),
     };
 
+    let unstable_features = FormatUnstableFeatures::default();
+
     let cst = format!("{:#?}", syntax);
     let ast = format!("{:#?}", parse.tree());
-    let formatted_code = format_code(options, &syntax)
+    let formatted_code = format_code(options, unstable_features, &syntax)
         // TODO: impl Error for FormatError
         .unwrap()
         .into_code();
 
-    let root_element = to_format_element(options, &syntax).unwrap();
+    let root_element = to_format_element(options, unstable_features, &syntax).unwrap();
     let formatter_ir = format!("{:#?}", root_element);
 
     let mut errors = ErrorOutput(Vec::new());

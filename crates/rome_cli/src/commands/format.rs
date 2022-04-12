@@ -1,14 +1,3 @@
-use std::{
-    collections::HashMap,
-    ffi::OsString,
-    fmt::Display,
-    io,
-    panic::catch_unwind,
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
-    time::{Duration, Instant},
-};
-
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use rayon::join;
 use rome_console::{
@@ -21,17 +10,29 @@ use rome_diagnostics::{
     file::{FileId, Files, SimpleFile},
     Diagnostic, DiagnosticHeader, Severity,
 };
+use rome_formatter::{FormatOptions, FormatUnstableFeatures, IndentStyle};
 use rome_fs::{AtomicInterner, FileSystem, PathInterner, RomePath};
 use rome_fs::{TraversalContext, TraversalScope};
-use rome_js_formatter::{FormatOptions, IndentStyle};
 use rome_js_parser::{parse, SourceType};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    fmt::Display,
+    io,
+    panic::catch_unwind,
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicUsize, Ordering},
+    time::{Duration, Instant},
+};
 
 use crate::{CliSession, Termination};
 
 /// Handler for the "format" command of the Rome CLI
 pub(crate) fn format(mut session: CliSession) -> Result<(), Termination> {
     let mut options = FormatOptions::default();
+    let mut unstable_features = FormatUnstableFeatures::default();
 
+    // mapping of options
     let size = session
         .args
         .opt_value_from_str("--indent-size")
@@ -80,6 +81,19 @@ pub(crate) fn format(mut session: CliSession) -> Result<(), Termination> {
 
     if let Some(line_width) = line_width {
         options.line_width = line_width;
+    }
+
+    // mapping of unstable features
+    let unstable_sort_imports = session
+        .args
+        .opt_value_from_str("--unstable-sort-imports")
+        .map_err(|source| Termination::ParseError {
+            argument: "--unstable-sort-imports",
+            source,
+        })?;
+
+    if let Some(unstable_sort_imports) = unstable_sort_imports {
+        unstable_features.unstable_sort_imports = unstable_sort_imports;
     }
 
     let is_write = session.args.contains("--write");
@@ -139,6 +153,7 @@ pub(crate) fn format(mut session: CliSession) -> Result<(), Termination> {
                     fs,
                     features,
                     options,
+                    unstable_features,
                     mode,
                     ignore_errors,
                     interner,
@@ -356,6 +371,8 @@ struct FormatCommandOptions<'ctx, 'app> {
     features: &'ctx Features,
     /// Options to use for formatting the discovered files
     options: FormatOptions,
+    /// Options of unstable features inside the formatter
+    unstable_features: FormatUnstableFeatures,
     /// Determines how the result of formatting should be handled
     mode: FormatMode,
     /// Whether the formatter should silently skip files with errors
@@ -413,6 +430,7 @@ fn handle_file(ctx: &FormatCommandOptions, path: &Path, file_id: FileId) {
         fs: ctx.fs,
         features: ctx.features,
         options: ctx.options,
+        unstable_features: ctx.unstable_features,
         mode: ctx.mode,
         ignore_errors: ctx.ignore_errors,
         path,
@@ -454,6 +472,7 @@ struct FormatFileParams<'ctx, 'app> {
     fs: &'app dyn FileSystem,
     features: &'ctx Features,
     options: FormatOptions,
+    unstable_features: FormatUnstableFeatures,
     mode: FormatMode,
     ignore_errors: bool,
     path: &'ctx Path,
@@ -511,8 +530,9 @@ fn format_file(params: FormatFileParams) -> FormatResult {
             });
         }
 
-        let result = rome_js_formatter::format(params.options, &root.syntax())
-            .with_file_id_and_code(params.file_id, "Format")?;
+        let result =
+            rome_js_formatter::format(params.options, params.unstable_features, &root.syntax())
+                .with_file_id_and_code(params.file_id, "Format")?;
 
         let output = result.as_code().as_bytes();
 
