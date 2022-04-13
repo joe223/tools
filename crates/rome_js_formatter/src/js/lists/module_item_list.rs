@@ -2,7 +2,9 @@ use crate::formatter_traits::FormatTokenAndNode;
 use crate::{FormatElement, FormatResult, Formatter, ToFormatElement};
 use rome_formatter::format_element::get_lines_between_nodes;
 use rome_formatter::{concat_elements, empty_line, format_elements, hard_line_break};
-use rome_js_syntax::{JsAnyImportClause, JsAnyModuleItem, JsModuleItemList, JsSyntaxNode};
+use rome_js_syntax::{
+    JsAnyImportClause, JsAnyModuleItem, JsImportBareClause, JsModuleItemList, JsSyntaxNode,
+};
 use rome_rowan::AstNode;
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -71,18 +73,18 @@ impl SortedImports {
         formatted: FormatElement,
         trailing_lines: usize,
     ) {
-        if matches!(import_clause, JsAnyImportClause::JsImportBareClause(_)) {
-            self.import_list.push(Import::PossiblyWithSideEffects(
-                import_clause.syntax().clone(),
+        if let JsAnyImportClause::JsImportBareClause(import_clause) = import_clause {
+            self.import_list.push(Import::PossiblyWithSideEffects {
+                node: import_clause.clone(),
                 formatted,
                 trailing_lines,
-            ))
+            })
         } else {
-            self.import_list.push(Import::Safe(
-                import_clause.syntax().clone(),
+            self.import_list.push(Import::Safe {
+                node: import_clause.syntax().clone(),
                 formatted,
                 trailing_lines,
-            ))
+            })
         }
     }
 
@@ -116,11 +118,8 @@ impl SortedImports {
 
     /// It sorts the [JsImport] stored so far and then empty them
     fn sort_and_store_import_list(&mut self, is_last: bool) {
-        self.import_list.sort_unstable_by_key(|key| match key {
-            Import::PossiblyWithSideEffects(_, _, _) => Ordering::Less,
-            Import::Safe(_, _, _) => Ordering::Greater,
-            _ => Ordering::Equal,
-        });
+        self.import_list
+            .sort_unstable_by(|left, right| left.compare(right));
         let formatted_list = self.formatted_import_list(is_last);
         self.result.push(formatted_list);
     }
@@ -156,23 +155,45 @@ impl SortedImports {
 
 #[derive(Eq, PartialEq)]
 enum Import {
-    PossiblyWithSideEffects(JsSyntaxNode, FormatElement, usize),
-    Safe(JsSyntaxNode, FormatElement, usize),
+    PossiblyWithSideEffects {
+        node: JsImportBareClause,
+        formatted: FormatElement,
+        trailing_lines: usize,
+    },
+    Safe {
+        node: JsSyntaxNode,
+        formatted: FormatElement,
+        trailing_lines: usize,
+    },
 }
 
 impl Import {
     /// Consumes self to to return a [FormatElement]
     pub fn into_format_element(self) -> FormatElement {
         match self {
-            Import::PossiblyWithSideEffects(_, element, _) => element,
-            Import::Safe(_, element, _) => element,
+            Import::PossiblyWithSideEffects { formatted, .. } => formatted,
+            Import::Safe { formatted, .. } => formatted,
         }
     }
 
     pub fn has_trailing_lines(&self) -> bool {
         match self {
-            Import::PossiblyWithSideEffects(_, _, trailing_lines) => *trailing_lines > 1,
-            Import::Safe(_, _, trailing_lines) => *trailing_lines > 1,
+            Import::PossiblyWithSideEffects { trailing_lines, .. } => *trailing_lines > 1,
+            Import::Safe { trailing_lines, .. } => *trailing_lines > 1,
+        }
+    }
+
+    pub fn compare(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (
+                Import::PossiblyWithSideEffects { node, .. },
+                Import::PossiblyWithSideEffects {
+                    node: other_node, ..
+                },
+            ) => node.text().cmp(&other_node.text()),
+            (_, Import::PossiblyWithSideEffects { .. }) => Ordering::Greater,
+            (Import::PossiblyWithSideEffects { .. }, _) => Ordering::Less,
+            _ => Ordering::Greater,
         }
     }
 }
@@ -180,8 +201,10 @@ impl Import {
 impl Debug for Import {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Import::PossiblyWithSideEffects(_, _, lines) => write!(f, "Side effects {}", lines),
-            Import::Safe(_, _, lines) => write!(f, "Safe {}", lines),
+            Import::PossiblyWithSideEffects { trailing_lines, .. } => {
+                write!(f, "Side effects {trailing_lines}")
+            }
+            Import::Safe { trailing_lines, .. } => write!(f, "Safe {trailing_lines}"),
         }
     }
 }
