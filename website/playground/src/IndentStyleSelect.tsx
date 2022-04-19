@@ -1,14 +1,14 @@
-import { IndentStyle } from "./types";
+import { IndentStyle, PlaygroundState } from "./types";
+import { Dispatch, SetStateAction } from "react";
 
 interface Props {
-	setIndentStyle: (indentStyle: IndentStyle) => void,
+	setPlaygroundState: Dispatch<SetStateAction<PlaygroundState>>,
 	indentStyle: IndentStyle,
 	indentWidth: number,
-	setIndentWidth: (indentWidth: number) => void,
 }
 
 export default function IndentStyleSelect(
-	{ indentStyle, setIndentStyle, indentWidth, setIndentWidth }: Props,
+	{ indentStyle, indentWidth, setPlaygroundState }: Props,
 ) {
 	return (
 		<div className="pl-5 pb-5 sm:p-5 flex">
@@ -26,7 +26,10 @@ export default function IndentStyleSelect(
 						className="w-[100px] mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
 						value={indentStyle}
 						onChange={(e) => {
-							setIndentStyle(e.target.value as IndentStyle);
+							setPlaygroundState((state) => ({
+								...state,
+								indentStyle: e.target.value as IndentStyle,
+							}));
 						}}
 					>
 						<option value={IndentStyle.Tab}>Tabs</option>
@@ -49,7 +52,10 @@ export default function IndentStyleSelect(
 						className="w-[65px] mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
 						value={indentWidth}
 						onChange={(e) => {
-							setIndentWidth(parseInt(e.target.value));
+							setPlaygroundState((state) => ({
+								...state,
+								indentWidth: parseInt(e.target.value),
+							}));
 						}}
 					/>
 				</div>

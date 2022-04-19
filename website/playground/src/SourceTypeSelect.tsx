@@ -1,16 +1,15 @@
-import { SourceType } from "./types";
+import { PlaygroundState, SourceType } from "./types";
+import { Dispatch, SetStateAction } from "react";
 
 interface Props {
-	setIsTypeScript: (b: boolean) => void,
+	setPlaygroundState: Dispatch<SetStateAction<PlaygroundState>>,
 	isTypeScript: boolean,
-	setIsJsx: (b: boolean) => void,
 	isJsx: boolean,
-	setSourceType: (v: SourceType) => void,
 	sourceType: SourceType,
 }
 
 export default function SourceTypeSelect(
-	{ setIsTypeScript, isTypeScript, setIsJsx, isJsx, setSourceType, sourceType }: Props,
+	{ setPlaygroundState, isTypeScript, isJsx, sourceType }: Props,
 ) {
 	return (
 		<div className="p-5 sm:pr-0 sm:pt-0">
@@ -32,8 +31,13 @@ export default function SourceTypeSelect(
 							id="sourceType"
 							aria-describedby="source-type-description"
 							name="sourceType"
-							value={sourceType ?? ""}
-							onChange={(e) => setSourceType(e.target.value as SourceType)}
+							value={sourceType}
+							onChange={(e) => {
+								setPlaygroundState((state) => ({
+									...state,
+									sourceType: e.target.value as SourceType,
+								}));
+							}}
 							className="w-[100px] mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
 						>
 							<option value={SourceType.Module}>Module</option>
@@ -51,7 +55,10 @@ export default function SourceTypeSelect(
 							type="checkbox"
 							checked={isTypeScript}
 							onChange={(e) => {
-								setIsTypeScript(e.target.checked);
+								setPlaygroundState((state) => ({
+									...state,
+									isTypeScript: e.target.checked,
+								}));
 							}}
 							className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded disabled:opacity-30"
 							disabled={sourceType == SourceType.Script}
@@ -74,7 +81,12 @@ export default function SourceTypeSelect(
 							name="jsx"
 							type="checkbox"
 							checked={isJsx}
-							onChange={(e) => setIsJsx(e.target.checked)}
+							onChange={(e) =>
+								setPlaygroundState((state) => ({
+									...state,
+									isJsx: e.target.checked,
+								}))
+							}
 							className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded disabled:opacity-30"
 							disabled={sourceType == SourceType.Script}
 						/>

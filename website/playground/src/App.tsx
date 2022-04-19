@@ -22,7 +22,7 @@ function App() {
 		[],
 	);
 	const [loadingState, setLoadingState] = useState(LoadingState.Loading);
-	const playgroundState = usePlaygroundState();
+	const [playgroundState, setPlaygroundState] = usePlaygroundState();
 	const { width } = useWindowSize();
 
 	switch (loadingState) {
@@ -70,6 +70,7 @@ function App() {
 				return (
 					<MobilePlayground
 						playgroundState={playgroundState}
+						setPlaygroundState={setPlaygroundState}
 						prettierOutput={prettierOutput}
 						romeOutput={romeOutput}
 					/>
@@ -78,6 +79,7 @@ function App() {
 			return (
 				<DesktopPlayground
 					playgroundState={playgroundState}
+					setPlaygroundState={setPlaygroundState}
 					prettierOutput={prettierOutput}
 					romeOutput={romeOutput}
 				/>

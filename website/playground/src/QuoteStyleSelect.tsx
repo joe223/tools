@@ -1,11 +1,14 @@
-import { QuoteStyle } from "./types";
+import { PlaygroundState, QuoteStyle } from "./types";
+import { Dispatch, SetStateAction } from "react";
 
 interface Props {
-	setQuoteStyle: (v: QuoteStyle) => void,
+	setPlaygroundState: Dispatch<SetStateAction<PlaygroundState>>,
 	quoteStyle: QuoteStyle,
 }
 
-export default function QuoteStyleSelect({ setQuoteStyle, quoteStyle }: Props) {
+export default function QuoteStyleSelect(
+	{ setPlaygroundState, quoteStyle }: Props,
+) {
 	return (
 		<div className="pl-5">
 			<fieldset>
@@ -26,7 +29,12 @@ export default function QuoteStyleSelect({ setQuoteStyle, quoteStyle }: Props) {
 							aria-describedby="quote-type-description"
 							name="quoteStyle"
 							value={quoteStyle ?? ""}
-							onChange={(e) => setQuoteStyle(e.target.value as QuoteStyle)}
+							onChange={(e) =>
+								setPlaygroundState((state) => ({
+									...state,
+									quoteStyle: e.target.value as QuoteStyle,
+								}))
+							}
 							className="w-[100px] mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
 						>
 							<option value={QuoteStyle.Double}>Double</option>

@@ -34,71 +34,33 @@ export function useWindowSize(): Size {
 	return windowSize;
 }
 
-export function usePlaygroundState(): PlaygroundState {
+export function usePlaygroundState() {
 	const searchParams = new URLSearchParams(window.location.search);
-	const [code, setCode] = useState(
-		() =>
-			window.location.hash !== "#" ? decodeCode(
+	const [playgroundState, setPlaygroundState] = useState(
+		() => ({
+			code: window.location.hash !== "#" ? decodeCode(
 				window.location.hash.substring(1),
 			) : "",
-	);
-	const [lineWidth, setLineWidth] = useState(
-		parseInt(searchParams.get("lineWidth") ?? "80"),
-	);
-	const [indentStyle, setIndentStyle] = useState(
-		(searchParams.get("indentStyle") as IndentStyle) ?? IndentStyle.Tab,
-	);
-	const [quoteStyle, setQuoteStyle] = useState(
-		(searchParams.get("quoteStyle") as QuoteStyle) ?? QuoteStyle.Double,
-	);
-	const [indentWidth, setIndentWidth] = useState(
-		parseInt(searchParams.get("indentWidth") ?? "2"),
-	);
-	const [isTypeScript, setIsTypeScript] = useState(
-		searchParams.get("typescript") === "true",
-	);
-	const [isJsx, setIsJsx] = useState(searchParams.get("jsx") === "true");
-	const [sourceType, setSourceType] = useState(
-		(searchParams.get("sourceType") as SourceType) ?? SourceType.Module,
+			lineWidth: parseInt(searchParams.get("lineWidth") ?? "80"),
+			indentStyle: (searchParams.get("indentStyle") as IndentStyle) ?? IndentStyle.Tab,
+			quoteStyle: (searchParams.get("quoteStyle") as QuoteStyle) ?? QuoteStyle.Double,
+			indentWidth: parseInt(searchParams.get("indentWidth") ?? "2"),
+			isTypeScript: searchParams.get("typescript") === "true",
+			isJsx: searchParams.get("jsx") === "true",
+			sourceType: (searchParams.get("sourceType") as SourceType) ?? SourceType.Module,
+		}),
 	);
 
 	useEffect(
 		() => {
-			const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?lineWidth=${lineWidth}&indentStyle=${indentStyle}&quoteStyle=${quoteStyle}&indentWidth=${indentWidth}&typescript=${isTypeScript}&jsx=${isJsx}&sourceType=${sourceType}#${encodeCode(
-				code,
-			)}`;
+			//@ts-ignore
+			const url = new URLSearchParams(playgroundState).toString();
 			window.history.pushState({ path: url }, "", url);
 		},
-		[
-			lineWidth,
-			indentStyle,
-			quoteStyle,
-			indentWidth,
-			code,
-			isTypeScript,
-			isJsx,
-			sourceType,
-		],
+		[playgroundState],
 	);
 
-	return {
-		code,
-		setCode,
-		lineWidth,
-		setLineWidth,
-		indentStyle,
-		setIndentStyle,
-		quoteStyle,
-		setQuoteStyle,
-		indentWidth,
-		setIndentWidth,
-		isTypeScript,
-		setIsTypeScript,
-		isJsx,
-		setIsJsx,
-		sourceType,
-		setSourceType,
-	};
+	return [playgroundState, setPlaygroundState];
 }
 
 export function formatWithPrettier(

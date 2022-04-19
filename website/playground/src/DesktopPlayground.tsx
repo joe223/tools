@@ -6,7 +6,8 @@ import { SettingsMenu } from "./SettingsMenu";
 
 export default function DesktopPlayground(
 	{
-		playgroundState: { code, setCode, ...settings },
+		playgroundState: { code, ...settings },
+		setPlaygroundState,
 		prettierOutput,
 		romeOutput: { cst, ast, formatted_code, formatter_ir, errors },
 	}: PlaygroundProps,
@@ -17,7 +18,10 @@ export default function DesktopPlayground(
 	return (
 		<div className="divide-y divide-slate-300">
 			<h1 className="p-4 text-xl">Rome Playground</h1>
-			<SettingsMenu settings={settings} />
+			<SettingsMenu
+				setPlaygroundState={setPlaygroundState}
+				settings={settings}
+			/>
 			<div className="box-border flex h-screen divide-x divide-slate-300">
 				<div className="w-1/2 p-5">
 					<CodeEditor

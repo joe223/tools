@@ -2,9 +2,13 @@ import LineWidthInput from "./LineWidthInput";
 import IndentStyleSelect from "./IndentStyleSelect";
 import QuoteStyleSelect from "./QuoteStyleSelect";
 import SourceTypeSelect from "./SourceTypeSelect";
-import { PlaygroundSettings } from "./types";
+import { PlaygroundSettings, PlaygroundState } from "./types";
+import { Dispatch, SetStateAction } from "react";
 
-interface Props { settings: PlaygroundSettings }
+interface Props {
+	settings: PlaygroundSettings,
+	setPlaygroundState: Dispatch<SetStateAction<PlaygroundState>>,
+}
 
 export function SettingsMenu(
 	{
@@ -24,31 +28,32 @@ export function SettingsMenu(
 			isJsx,
 			setIsJsx,
 		},
+		setPlaygroundState,
 	}: Props,
 ) {
 	return (
 		<div>
 			<div className="flex flex-col sm:flex-row">
-				<LineWidthInput lineWidth={lineWidth} setLineWidth={setLineWidth} />
+				<LineWidthInput
+					lineWidth={lineWidth}
+					setPlaygroundState={setPlaygroundState}
+				/>
 				<IndentStyleSelect
 					indentWidth={indentWidth}
-					setIndentWidth={setIndentWidth}
 					indentStyle={indentStyle}
-					setIndentStyle={setIndentStyle}
+					setPlaygroundState={setPlaygroundState}
 				/>
 			</div>
 			<div className="flex flex-col sm:flex-row">
 				<QuoteStyleSelect
 					quoteStyle={quoteStyle}
-					setQuoteStyle={setQuoteStyle}
+					setPlaygroundState={setPlaygroundState}
 				/>
 				<SourceTypeSelect
 					isTypeScript={isTypeScript}
-					setIsTypeScript={setIsTypeScript}
+					setPlaygroundState={setPlaygroundState}
 					isJsx={isJsx}
-					setIsJsx={setIsJsx}
 					sourceType={sourceType}
-					setSourceType={setSourceType}
 				/>
 			</div>
 		</div>
