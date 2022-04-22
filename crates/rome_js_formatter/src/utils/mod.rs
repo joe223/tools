@@ -19,7 +19,7 @@ pub(crate) use format_conditional::{format_conditional, Conditional};
 use rome_formatter::{normalize_newlines, FormatResult};
 use rome_js_syntax::{
     JsAnyExpression, JsAnyFunction, JsAnyRoot, JsAnyStatement, JsInitializerClause, JsLanguage,
-    JsTemplateElement, JsTemplateElementFields, Modifiers, TsTemplateElement,
+    JsTemplateElement, JsTemplateElementFields, JsxText, Modifiers, TsTemplateElement,
     TsTemplateElementFields, TsType,
 };
 use rome_js_syntax::{JsSyntaxKind, JsSyntaxNode, JsSyntaxToken};
@@ -634,4 +634,22 @@ pub(crate) fn format_string_literal_token(
         Token::from_syntax_token_cow_slice(content, &token, token.text_trimmed_range().start())
             .into(),
     )
+}
+
+pub(crate) fn format_jsx_text_replaced_with(
+    text: JsxText,
+    formatter: &Formatter,
+    with: FormatElement,
+) -> FormatResult<FormatElement> {
+    let token = text.value_token()?;
+
+    Ok(formatter.format_replaced(&token, with))
+}
+
+/// If JSX text contains characters such as new lines or tabs, it means that is not
+/// meaningful, meaning it's used only spacing between other JSX tags
+pub(crate) fn is_meaningful_jsx_text(jsx_text: &JsxText) -> bool {
+    let text = jsx_text.text();
+
+    text.starts_with(['\n', '\r', '\t']) || text.starts_with("\r\n")
 }

@@ -481,12 +481,17 @@ mod test {
     use rome_js_parser::{parse, SourceType};
 
     #[test]
+    #[ignore]
     // use this test check if your snippet prints as you wish, without using a snapshot
     fn quick_test() {
         let src = r#"
-a + b * c > 65 + 5;
+<>
+<Child />
+
+<Child />O
+</>
 "#;
-        let syntax = SourceType::tsx();
+        let syntax = SourceType::jsx();
         let tree = parse(src, 0, syntax.clone());
         let result = format_node(FormatOptions::default(), &tree.syntax())
             .unwrap()
