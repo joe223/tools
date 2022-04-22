@@ -1,10 +1,9 @@
-use crate::formatter_traits::FormatTokenAndNode;
 use crate::utils::{format_jsx_text_replaced_with, is_meaningful_jsx_text};
-use crate::{Format, FormatElement, Formatter};
+use crate::{Format, FormatElement, FormatNode, Formatter};
 use rome_formatter::FormatResult;
 use rome_formatter::{
-    concat_elements, empty_element, empty_line, format_elements, group_elements, hard_line_break,
-    indent, join_elements, join_elements_soft_line, soft_block_indent, soft_line_break,
+    concat_elements, empty_line, format_elements, group_elements, hard_line_break, indent,
+    join_elements, join_elements_soft_line, soft_block_indent, soft_line_break,
     soft_line_break_or_space, token, IndentStyle, Token,
 };
 use rome_js_syntax::{JsxAnyChild, JsxChildList};

@@ -1,5 +1,4 @@
-use crate::formatter_traits::FormatTokenAndNode;
-use crate::{FormatElement, FormatNode, Formatter};
+use crate::{Format, FormatElement, FormatNode, Formatter};
 use rome_formatter::FormatResult;
 use rome_formatter::{
     block_indent, format_elements, group_elements, hard_line_break, indent, soft_block_indent,
